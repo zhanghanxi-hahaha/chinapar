@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>China-PAR 评分计算器</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        #result { font-size: 20px; margin-top: 20px; color: #d9534f; }
+    </style>
+</head>
+<body>
+    <h2>China-PAR 评分计算器</h2>
+
+    <label>年龄（岁）:</label>
+    <input type="number" id="age" min="18" max="100">
+
+    <label>收缩压（mmHg）:</label>
+    <input type="number" id="sbp" min="50" max="250">
+
+    <label>总胆固醇（mmol/L）:</label>
+    <input type="number" step="0.1" id="tc" min="2" max="10">
+
+    <label>高密度脂蛋白胆固醇（mmol/L）:</label>
+    <input type="number" step="0.1" id="hdl_c" min="0.5" max="3">
+
+    <label>是否吸烟:</label>
+    <select id="smoking">
+        <option value="1">是</option>
+        <option value="0">否</option>
+    </select>
+
+    <label>是否患糖尿病:</label>
+    <select id="diabetes">
+        <option value="1">是</option>
+        <option value="0">否</option>
+    </select>
+
+    <label>居住地:</label>
+    <select id="urban">
+        <option value="1">城市</option>
+        <option value="0">农村</option>
+    </select>
+
+    <label>性别:</label>
+    <select id="gender" onchange="toggleBMI()">
+        <option value="male">男性</option>
+        <option value="female">女性</option>
+    </select>
+
+    <label id="bmiLabel" style="display:none;">体重指数（BMI，kg/m²）:</label>
+    <input type="number" step="0.1" id="bmi" min="15" max="50" style="display:none;">
+
+    <button onclick="calculateRisk()">计算10年ASCVD风险</button>
+
+    <p id="result"></p>
+
+    <script>
+        function toggleBMI() {
+            let gender = document.getElementById("gender").value;
+            let bmiLabel = document.getElementById("bmiLabel");
+            let bmiInput = document.getElementById("bmi");
+
+            if (gender === "female") {
+                bmiLabel.style.display = "block";
+                bmiInput.style.display = "block";
+            } else {
+                bmiLabel.style.display = "none";
+                bmiInput.style.display = "none";
+            }
+        }
+
+        function chinaParRisk(age, sbp, tc, hdl_c, smoking, diabetes, urban, bmi, gender) {
+            let beta_male = [3.06117, 1.93303, 1.12370, -1.40220, 0.65451, 0.89559, 0.46329];
+            let mean_male = [50.0, 128.0, 4.72, 1.30, 0.528, 0.108, 0.664];
+            let S0_male = 0.9149;
+
+            let beta_female = [2.32888, 2.43244, 1.81054, -1.80964, 0.60247, 0.41963, 0.23496, 0.34920];
+            let mean_female = [50.0, 122.0, 5.09, 1.48, 0.129, 0.085, 0.654, 23.5];
+            let S0_female = 0.9656;
+
+            let beta, mean_values, S0_t;
+            let factors;
+
+            if (gender === "male") {
+                beta = beta_male;
+                mean_values = mean_male;
+                S0_t = S0_male;
+                factors = [age, sbp, tc, hdl_c, smoking, diabetes, urban];
+            } else {
+                beta = beta_female;
+                mean_values = mean_female;
+                S0_t = S0_female;
+                factors = [age, sbp, tc, hdl_c, smoking, diabetes, urban, bmi];
+            }
+
+            let risk_score = 0;
+            for (let i = 0; i < factors.length; i++) {
+                risk_score += beta[i] * (factors[i] - mean_values[i]);
+            }
+
+            let risk = 1 - Math.pow(S0_t, Math.exp(risk_score));
+            return (risk * 100).toFixed(2);
+        }
+
+        function calculateRisk() {
+            let age = parseFloat(document.getElementById("age").value);
+            let sbp = parseFloat(document.getElementById("sbp").value);
+            let tc = parseFloat(document.getElementById("tc").value);
+            let hdl_c = parseFloat(document.getElementById("hdl_c").value);
+            let smoking = parseInt(document.getElementById("smoking").value);
+            let diabetes = parseInt(document.getElementById("diabetes").value);
+            let urban = parseInt(document.getElementById("urban").value);
+            let gender = document.getElementById("gender").value;
+            let bmi = gender === "female" ? parseFloat(document.getElementById("bmi").value) : null;
+
+            let risk = chinaParRisk(age, sbp, tc, hdl_c, smoking, diabetes, urban, bmi, gender);
+            document.getElementById("result").innerText = `您的10年ASCVD风险：${risk}%`;
+        }
+    </script>
+</body>
+</html>
